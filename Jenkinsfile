@@ -1,30 +1,33 @@
 #!groovy
 
-node {
+node 
+{
 
     def SF_CONSUMER_KEY=env.SF_CONSUMER_KEY
     def SF_USERNAME=env.SF_USERNAME
-    def SERVER_KEY_CREDENTIALS_ID=env.SERVER_KEY_CREDENTIALS_ID
+    def SERVER_KEY_CREDENTIALS_ID=env.server_key_credentials_id
+    def SF_INSTANCE_URL = env.SF_INSTANCE_URL ?: "https://login.salesforce.com"
 	def TEST_LEVEL='%Testlevel%'
-	def DEPLOYDEST='destructive'
-	def DEPLOYDIR='DeltaChanges/force-app'
-	//def workspace = WORKSPACE
-
-    def SF_INSTANCE_URL = env.SF_INSTANCE_URL ?: "https://test.salesforce.com"
-
-
+	def DELTA='DeltaChanges'
+	def DEPLOYDIR='toDeploy'
+	def APIVERSION='51.0'
     def toolbelt = tool 'toolbelt'
+	def scannerHome = tool 'SonarScanner'
+
+	
+
 
     stage('Clean Workspace') 
 	{
         try 
-			{
-            	deleteDir()
-        	}
+		{
+            deleteDir()
+			currentBuild.displayName = "Crowley Demo Pipeline ${BUILD_NUMBER}"
+        }
         catch (Exception e) 
-			{
-            	println('Unable to Clean WorkSpace.')
-        	}
+		{
+            println('Unable to Clean WorkSpace.')
+        }
     }
     // -------------------------------------------------------------------------
     // Check out code from source control.
@@ -33,6 +36,10 @@ node {
     stage('checkout source') 
 	{
         checkout scm
+		def branchOriginName = bat (label: 'Branch name', script: '@git name-rev --name-only HEAD', returnStdout: true).trim() as String   
+        branchName = branchOriginName.replaceAll('remotes/origin/','').split('~')[0]
+        println branchName
+    
     }
 
 
@@ -44,144 +51,20 @@ node {
  	withEnv(["HOME=${env.WORKSPACE}"]) 
 	{	
 	
-	    	withCredentials([file(credentialsId: SERVER_KEY_CREDENTIALS_ID, variable: 'server_key_file')])
+	    withCredentials([file(credentialsId: SERVER_KEY_CREDENTIALS_ID, variable: 'server_key_file')]) 
+		{
+			// -------------------------------------------------------------------------
+			// Authenticate to Salesforce using the server key.
+			// -------------------------------------------------------------------------
+
+			stage('Authorize to Salesforce') 
 			{
-					// -------------------------------------------------------------------------
-					// Authenticate to Salesforce using the server key.
-					// -------------------------------------------------------------------------
-
-				stage('Authorize to Salesforce') 
+				rc = command "${toolbelt}/sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
+				if (rc != 0) 
 				{
-					rc = command "${toolbelt}/sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
-		    		if (rc != 0) 
-					{
-						error 'Salesforce org authorization failed.'
-		   			 }
+					error 'Salesforce org authorization failed.'
 				}
-
-
-				// -------------------------------------------------------------------------
-				// Install sfpowerkit.
-				// -------------------------------------------------------------------------
-				//stage('Install sfpowerkit')
-				//{
-					//bat 'sfpowerkit.bat'
-				//}
-				// -------------------------------------------------------------------------
-				// Generate metadata.
-				// -------------------------------------------------------------------------
-				stage('Delta changes')
-				{
-				// -------------------------------------------------------------------------
-    			// Delta changes.
-    			// -------------------------------------------------------------------------
-				bat 'sfdx sfpowerkit:project:diff --revisionfrom %PreviousCommitId% --revisionto %LatestCommitId% --output DeltaChanges'
-	    		// -------------------------------------------------------------------------
-    			// Delta and destructive changes.
-    			// -------------------------------------------------------------------------
-				if (Destructive_Changes=='true')
-					{
-						script
-						{
-							bat 'sfdx sfpowerkit:project:diff --revisionfrom %PreviousCommitId% --revisionto %LatestCommitId% --output DeltaChanges -x'
-							bat 'copyDestructivefile.bat' 
-						}
-					}
-				}
-				// -------------------------------------------------------------------------
-	    		// Deploy destructive changes.
-	   			// -------------------------------------------------------------------------
-
-				stage('Deploy Destructive Changes') 
-				{
-					if (Deployment_Type=='Destructive Changes')
-					{
-						script
-						{
-							rc = command "${toolbelt}/sfdx force:mdapi:deploy -d ${DEPLOYDEST} --wait 10 --targetusername ${SF_USERNAME}"
-							
-		    			}
-					 }
-	    		}
-           
-	     		// -------------------------------------------------------------------------
-	    		// Example shows how to run a check-only deploy.
-	   			// -------------------------------------------------------------------------
-
-				stage('Validate') 
-				{
-					if (Deployment_Type=='Validate')
-					{
-						script
-						{
-				
-							if (TESTLEVEL=='NoTestRun') 
-							{
-								println TESTLEVEL
-								rc = command "${toolbelt}/sfdx force:source:deploy -p ${DEPLOYDIR} --checkonly --wait 10 --targetusername ${SF_USERNAME} "
-							}
-							else if (TESTLEVEL=='RunLocalTests') 
-							{
-								println TESTLEVEL
-								rc = command "${toolbelt}/sfdx force:source:deploy -p ${DEPLOYDIR} --checkonly --wait 10 --targetusername ${SF_USERNAME} --testlevel ${TESTLEVEL} --verbose --loglevel fatal"
-							}
-							else if (TESTLEVEL=='RunSpecifiedTests')
-							{
-								println TESTLEVEL
-								rc = command "${toolbelt}/sfdx force:source:deploy -p ${DEPLOYDIR} --checkonly --wait 10 --targetusername ${SF_USERNAME} --testlevel ${TESTLEVEL} -r %SpecifyTestClass% --verbose --loglevel fatal"
-							}
-   
-							else (rc != 0) 
-							{
-								error 'Salesforce Validate step has failed.'
-							}
-		    			}
-					 }
-	    		}
-            	// -------------------------------------------------------------------------
-				// Deploy metadata and execute unit tests.
-				// -------------------------------------------------------------------------
-			    
-				stage('Validate and Deploy') 
-				{
-					if (Deployment_Type=='Validate and Deploy')
-					{
-						script
-						{
-							if (TESTLEVEL=='NoTestRun') 
-							{
-								println TESTLEVEL
-								rc = command "${toolbelt}/sfdx force:source:deploy -p ${DEPLOYDIR} --wait 10 --targetusername ${SF_USERNAME} "
-							}
-							else if (TESTLEVEL=='RunLocalTests') 
-							{
-								println TESTLEVEL
-								rc = command "${toolbelt}/sfdx force:source:deploy -p ${DEPLOYDIR} --wait 10 --targetusername ${SF_USERNAME} --testlevel ${TESTLEVEL} --verbose --loglevel fatal"
-							}
-							else if (TESTLEVEL=='RunSpecifiedTests') 
-							{
-								println TESTLEVEL
-								rc = command "${toolbelt}/sfdx force:source:deploy -p ${DEPLOYDIR} --wait 10 --targetusername ${SF_USERNAME} --testlevel ${TESTLEVEL} -r %SpecifyTestClass% --verbose --loglevel fatal"
-							}
-   
-							else (rc != 0) 
-							{
-								error 'Salesforce Validate and Deploy step has failed.'
-							}
-		    			}
-					}
-	    		}
 			}
+		}
 	}
-}
-
-def command(script) 
-{
-    if (isUnix()) 
-	{
-        return sh(returnStatus: true, script: script);
-    } else 
-	{
-		return bat(returnStatus: true, script: script);
-    }
 }
