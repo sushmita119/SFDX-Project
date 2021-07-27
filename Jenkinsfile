@@ -11,7 +11,7 @@ node
 	def DELTA='DeltaChanges'
 	def DEPLOYDIR='toDeploy'
 	def APIVERSION='51.0'
-    def toolbelt = tool 'toolbelt'
+   
 	
 
 	
@@ -59,13 +59,14 @@ node
 			// Authenticate to Salesforce using the server key.
 			// -------------------------------------------------------------------------
 
-			stage('Authorize to Salesforce') 
-			{	 bat '''
-					echo 'sushmita';
-				set rc = command "${toolbelt}/sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
-					echo "%rc%"
-					'''
-			}
+			stage('Authorize to Salesforce')
+                                            {
+                                                rc = command "sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
+                                                if (rc != 0)
+                                                {
+                                                    error 'Salesforce org authorization failed.'
+                                                }
+                                            }
 		}
 	}
 }
