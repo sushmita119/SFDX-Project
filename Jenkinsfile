@@ -12,7 +12,7 @@ node
 	def DEPLOYDIR='toDeploy'
 	def APIVERSION='51.0'
     def toolbelt = tool 'toolbelt'
-	def scannerHome = tool 'SonarScanner'
+	
 
 	
 
