@@ -11,7 +11,7 @@ node
 	def DELTA='DeltaChanges'
 	def DEPLOYDIR='toDeploy'
 	def APIVERSION='51.0'
-    def toolbelt = tool 'sfdx'
+    def toolbelt = tool 'toolbelt'
 	
 
 	
