@@ -22,7 +22,7 @@ node
         try 
 		{
             deleteDir()
-			currentBuild.displayName = "Crowley Demo Pipeline ${BUILD_NUMBER}"
+			currentBuild.displayName = "SFDX DEMO PIPELINE ${BUILD_NUMBER}"
         }
         catch (Exception e) 
 		{
@@ -41,7 +41,9 @@ node
         println branchName
     
     }
-
+	stage('print server key'){
+	echo SERVER_KEY_CREDENTIALS_ID;
+		}
 
     // -------------------------------------------------------------------------
     // Run all the enclosed stages with access to the Salesforce
