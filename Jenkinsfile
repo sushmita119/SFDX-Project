@@ -36,9 +36,7 @@ node
     stage('checkout source') 
 	{
         checkout scm
-		def branchOriginName = bat (label: 'Branch name', script: '@git name-rev --name-only HEAD', returnStdout: true).trim() as String   
-        branchName = branchOriginName.replaceAll('remotes/origin/','').split('~')[0]
-        println branchName
+		
     
     }
 	stage('print server key'){
