@@ -41,6 +41,7 @@ node
     }
 	stage('print server key'){
 	echo SERVER_KEY_CREDENTIALS_ID;
+	
 		}
 
     // -------------------------------------------------------------------------
@@ -59,6 +60,10 @@ node
 
 			stage('Authorize to Salesforce')
                                             {
+						    sh '''
+							 echo "This is the directory of the secret file $server_key_file"
+							 echo "This is the content of the file `cat $server_key_file`"
+						       '''
                                                 rc = command "sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
                                                 if (rc != 0)
                                                 {
