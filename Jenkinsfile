@@ -62,8 +62,8 @@ node
 			stage('Authorize to Salesforce') 
 			{	 bat '''
 					echo 'sushmita';
-				$rc = command "${toolbelt}/sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
-					'echo %rc%'
+				set rc = command "${toolbelt}/sfdx auth:jwt:grant --instanceurl ${SF_INSTANCE_URL} --clientid ${SF_CONSUMER_KEY} --jwtkeyfile ${server_key_file} --username ${SF_USERNAME} --setalias SFDX"
+					echo "%rc%"
 					'''
 			}
 		}
