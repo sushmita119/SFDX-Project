@@ -84,4 +84,16 @@
         <name>JWT_Demo_Connect</name>
         <type>ConnectedApp</type>
     </appMenuItems>
+    <appMenuItems>
+        <name>pro</name>
+        <type>ConnectedApp</type>
+    </appMenuItems>
+    <appMenuItems>
+        <name>test</name>
+        <type>ConnectedApp</type>
+    </appMenuItems>
+    <appMenuItems>
+        <name>ELK</name>
+        <type>ConnectedApp</type>
+    </appMenuItems>
 </AppMenu>
